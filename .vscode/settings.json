@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "ELF.C": "cpp",
+        "typeinfo": "c",
+        "libelf.h": "c"
+    }
+}

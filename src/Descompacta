@@ -1,0 +1,122 @@
+#include <stdio.h>
+
+#include "../arvore.h"
+
+
+// Pega o próximo bit do buffer, carrega o próximo byte quando adequado, e
+// indica o fim do arquivo e do código através das flags `eof` e `lendo`
+uchar pegaBit(Bits* buf, uchar* bufProx, FILE* arq, int* eof, int* lendo, uint resto){
+
+    // Pega o próximo bit e incrementa o contador de bits
+    uchar ret = PEGA_BIT(*buf, buf->pos++);
+
+    // Caso esteja no último byte
+    if (*eof) {
+        // Caso tenham sido lidos os últimos bits restantes
+        if (buf->pos == resto)
+            *lendo = 0;
+    }
+
+    // Caso não seja o último byte, e já tenham sido lidos 8 bits,
+    // carrega novo byte do arquivo
+    else if (buf->pos == 8) {
+        buf->data = *bufProx;
+        buf->pos = 0;
+
+        *bufProx = fgetc(arq);
+        // Caso fim do arquivo, indica para parar o loop de leitura
+        *eof = feof(arq);
+    }
+
+    return ret;
+}
+
+void descodifica(Arv* arv, FILE* arqEntrada, FILE* arqSaida, uint resto){
+    Bits buffer = (Bits){0, '\0'};
+    uchar bufferProx = '\0';
+
+    int eof = 0;
+    int lendo = 1;
+
+    // Lê o primeiro byte e para caso EOF
+    buffer.data = fgetc(arqEntrada);
+    if (feof(arqEntrada)) return;
+
+    bufferProx = fgetc(arqEntrada);
+    eof = feof(arqEntrada);
+
+    Arv* no;
+    int ehRam;
+
+    // Em caso de um única folha (apenas um caractere em todo arquivo)
+    if (Arv_ehFolha(arv)) {
+        const uchar chr = Arv_char(arv);
+        while(lendo){
+            pegaBit(&buffer, &bufferProx, arqEntrada, &eof, &lendo, resto);
+            fputc(chr, arqSaida);
+        }
+        return;
+    }
+
+    // Caso uma árvore de fato
+    while(lendo) {
+        ehRam = 1;
+        no = arv; // TODO checar existência
+        // Lê até encontrar folha ou fim da sequência
+        while (ehRam && lendo) {
+            uchar bit = pegaBit(&buffer, &bufferProx, arqEntrada, &eof, &lendo, resto);
+            no = anda(no, bit, &ehRam);
+        }
+        // Caso tenha parado de ler no meio da árvore, emite erro
+        if (ehRam) {
+            fprintf(stderr, "Erro ao decodificar sequência binária\n");
+            fclose(arqSaida);
+            exit(1);
+        }
+        fputc(Arv_char(no), arqSaida);
+    }
+}
+
+
+int main(int argv, char** argc) {
+    // Garante dois parâmetros
+    if (argv <= 2) {
+        fprintf(stderr, "Uso: %s <entrada> <saida>\n", argc[0]);
+        return 0;
+    }
+
+    char* ARQ_ENTRADA = argc[1];
+    char* ARQ_SAIDA = argc[2];
+
+    FILE* arqEntrada = fopen(ARQ_ENTRADA, "r");
+    if (!arqEntrada) {
+        fprintf(stderr, "Falha ao abrir '%s' para leitura\n", ARQ_ENTRADA);
+        return 1;
+    }
+    FILE* arqSaida = fopen(ARQ_SAIDA, "w");
+    if (!arqSaida) {
+        fprintf(stderr, "Falha ao abrir '%s' para escrita\n", ARQ_SAIDA);
+        return 1;
+    }
+
+    // fprintf(stderr, "Descompactando\n");
+
+    // Lê o byte que indica a quantidade de bits restantes no último byte
+    uchar resto = fgetc(arqEntrada);
+    if (feof(arqEntrada))
+        return 1;
+
+    // fprintf(stderr, "resto: %u\n", resto); /// DEBUG
+
+    Arv* huff = Arv_desserializa(arqEntrada);
+
+    // Arv_imprime(stderr, huff); fprintf(stderr, "\n"); /// DEBUG
+
+    descodifica(huff, arqEntrada, arqSaida, (uint)resto);
+
+    fclose(arqEntrada);
+    fclose(arqSaida);
+    Arv_libera(huff);
+
+    return 0;
+}

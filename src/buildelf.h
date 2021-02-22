@@ -12,6 +12,7 @@
 
 void write_ehdr(int outfilefd);
 void write_phdr(int outfilefd);
+void write_encoded_tree(int inputfilefd, int outfilefd);
 
 
 #endif // SECTION_H_

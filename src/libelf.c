@@ -20,11 +20,6 @@ PELF map_elf(const char *base){
     // ==+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+==
     Elf64_Ehdr *ehdr = (Elf64_Ehdr *)base;
 
-    if (ehdr->e_shoff == 0){
-        puts("File doesn't have a section header\n");
-        goto mapphdr;
-    }
-
     elf->ehdr = malloc(sizeof(Elf64_Ehdr));
     if (!elf->ehdr)
         MALLOC_ERR("Failed to allocate space for Elf Header");
@@ -32,6 +27,11 @@ PELF map_elf(const char *base){
     Elf64_Half ehsize = ehdr->e_ehsize;
     memset(elf->ehdr, 0, ehsize);
     memcpy(elf->ehdr, base, ehsize);
+
+    if (ehdr->e_shoff == 0){
+        puts("File doesn't have a section header\n");
+        goto mapphdr;
+    }
     // ==+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+==
 
 

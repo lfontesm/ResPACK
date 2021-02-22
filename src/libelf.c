@@ -137,13 +137,19 @@ mapphdr: ;
             printf("\t PT_LOPROC\n");
         if (phdr->p_type == PT_HIPROC)
             printf("\t PT_HIPROC\n");
-
+        if (phdr->p_type == PT_GNU_EH_FRAME)
+            printf("\t PT_GNU_EH_FRAME\n");
+        if (phdr->p_type == PT_GNU_PROPERTY)
+            printf("\t PT_GNU_PROPERTY\n");
+        if (phdr->p_type == PT_GNU_STACK)
+            printf("\t PT_GNU_STACK\n");
+    
         printf("\t[*]  W  |  R  |  X\n");
         printf("\t[*] [%d] | [%d] | [%d]\n", (phdr->p_flags >> 1) & 1, (phdr->p_flags >> 2) & 1, phdr->p_flags & 1);
         printf("\tSize of loaded file in memory: 0x%08llx\n", phdr->p_memsz);
         printf("\tSize of loaded file in disk: 0x%08llx\n", phdr->p_filesz);
         printf("\tVaddr: 0x%08llx || Paddr: 0x%08llx\n", phdr->p_vaddr, phdr->p_paddr);
-        
+        printf("\tAlignement: %llu\n", phdr->p_align);
 
         if (phdr->p_type == PT_LOAD){
             memcpy(&(elf->phdr[indx]), phdr, phentsize);

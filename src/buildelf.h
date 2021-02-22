@@ -10,7 +10,8 @@
 #if !defined(SECTION_H_)
 #define SECTION_H_
 
-void dump_ehdr(int outfilefd, Elf64_Ehdr newehdr);
+void write_ehdr(int outfilefd);
+void write_phdr(int outfilefd);
 
 
 #endif // SECTION_H_

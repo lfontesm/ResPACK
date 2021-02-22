@@ -11,22 +11,6 @@
 #include "../buildelf.h"
 
 const char* PAKCER_SUFIX = ".lhel";
-Elf64_Ehdr newelfEhdr = {
-    .e_ident     = {'\x7f','\x45','\x4c','\x46','\x02','\x01','\x01','\x03','\x00','\x00','\x00','\x00','\x00','\x00','\x00','\x00'},	/* ELF "magic number" */
-    .e_type      = ET_EXEC,
-    .e_machine   = 0x3E,
-    .e_version   = 0x01,
-    .e_entry     = 0,	  /* Entry point virtual address */
-    .e_phoff     = 64,	  /* Program header table file offset */
-    .e_shoff	 = 0,     /* Section header table file offset */
-    .e_flags     = 0,
-    .e_ehsize    = 64,
-    .e_phentsize = 56,
-    .e_phnum     = 3,
-    .e_shentsize = 64,
-    .e_shnum     = 0,
-    .e_shstrndx  = 0
-};
 
 // Count the ocorrence of each char (byte) in a file
 void count_char(int* freqVector, FILE* infile){
@@ -201,7 +185,8 @@ int main(int argc, char **argv){
         perror("open");
         return 1;
     }
-    dump_ehdr(fd, newelfEhdr);
+    write_ehdr(fd);
+    write_phdr(fd);
 
     close(fd);
     umap_file((char *)base, filesize);

@@ -31,6 +31,7 @@ void organizaCodigos (Code* codigos, uint cods, bitmap* codigosVet[256]) {
  * o arquivo de `entrada`, escrevendo em `saida`
  * Retorna  Número de bits no último byte da codificação
  */
+Elf64_Off segmentsize;
 uint codificaArquivo(int intputfilefd, int outfilefd, bitmap* codigosVet[256], uint cods){
     // Armazena o byte a ser escrito na saída
     Bits outbits = {0,'\0'};
@@ -56,7 +57,7 @@ uint codificaArquivo(int intputfilefd, int outfilefd, bitmap* codigosVet[256], u
             if (outbits.pos == 8){
                 // Escreve na saída
                 // fputc(outbits.data, saida);
-                nwrite = write(outfilefd, &outbits.data, sizeof(outbits.data));
+                segmentsize += nwrite = write(outfilefd, &outbits.data, sizeof(outbits.data));
                 if (nwrite == -1){
                     perror("Failed to write encoded file");
                     exit(EXIT_FAILURE);
@@ -73,11 +74,12 @@ uint codificaArquivo(int intputfilefd, int outfilefd, bitmap* codigosVet[256], u
     if (outbits.pos) {
         // Escreve o byte
         // fputc(outbits.data, saida);
-        nwrite = write(outfilefd, &outbits.data, sizeof(outbits.data));
+        segmentsize += nwrite = write(outfilefd, &outbits.data, sizeof(outbits.data));
         if (nwrite == -1){
             perror("Failed to write encoded file");
             exit(EXIT_FAILURE);
         }
+        // pad_zero(outfilefd);
         // e retorna o número de bits significativos no último byte
         return outbits.pos;
     }

@@ -41,7 +41,7 @@ NEW_EHDR newehdr = {
     .offsetinfile = 0
 };
 
-NEW_PHDR newphdr = {
+NEW_PHDR newphdrlist = {
     .phdrlist = {[0 ... 2] = {
         .p_type   = PT_LOAD,
         .p_flags  = 0,
@@ -54,6 +54,14 @@ NEW_PHDR newphdr = {
     }},
     .offsetinfile = {[0 ... 2] = 0}
 };
+
+void set_fileds_offset(int fd, off_t offset, int whence){
+    int seekoffset;
+    if ((seekoffset = lseek(fd, offset, whence)) == -1){
+        perror("Lseek failed");
+        exit(EXIT_FAILURE);
+    }
+}
 
 /* 
     Write ELF header
@@ -75,7 +83,7 @@ void write_ehdr(int outfilefd){
 Elf64_Phdr init_a_phdr(int indx, Elf64_Word p_type, Elf64_Word p_flags,
                         Elf64_Off p_offset, Elf64_Addr p_addr, Elf64_Xword p_size, 
                         Elf64_Xword p_align, int isheap){
-    Elf64_Phdr phdr = newphdr.phdrlist[indx] = (Elf64_Phdr) {
+    Elf64_Phdr phdr = newphdrlist.phdrlist[indx] = (Elf64_Phdr) {
         .p_type = p_type,
         .p_flags = p_flags,
         .p_offset = p_offset,
@@ -86,22 +94,58 @@ Elf64_Phdr init_a_phdr(int indx, Elf64_Word p_type, Elf64_Word p_flags,
     };
 
     if (!isheap)
-        phdr.p_filesz = newphdr.phdrlist[indx].p_filesz = p_size;
+        phdr.p_filesz = newphdrlist.phdrlist[indx].p_filesz = p_size;
 
     return phdr;
+}
+
+void _write_phdr(int outfilefd, Elf64_Phdr phdr){
+    int nwrite;
+    nwrite = write(outfilefd, &phdr, sizeof(phdr));
+    if (nwrite == -1){
+        perror("Operation write failed: ");
+        exit(EXIT_FAILURE);
+    }
+    if (nwrite != sizeof(phdr)) 
+        puts("Writing of phdr was probably not succesful");
+
+    offset += nwrite;
+
+    // nwrite = write(outfilefd, &phdr_heap, sizeof(phdr_heap));
+    // if (nwrite == -1){
+    //     perror("Operation write failed: ");
+    //     exit(EXIT_FAILURE);
+    // }
+    // if (nwrite != sizeof(phdr_heap)) 
+    //     puts("Writing of phdr heap was probably not succesful");
+
+    // offset += nwrite;
+
+    // nwrite = write(outfilefd, &phdr_stack, sizeof(phdr_stack));
+    // if (nwrite == -1){
+    //     perror("Operation write failed: ");
+    //     exit(EXIT_FAILURE);
+    // }
+    // if (nwrite != sizeof(phdr_stack)) 
+    //     puts("Writing of phdr_stack was probably not succesful");
+
+    // offset += nwrite;
 }
 
 /* 
     Write program headers
  */
+Elf64_Phdr phdr_exec;
+Elf64_Phdr phdr_heap;
+Elf64_Phdr phdr_stack;
 void write_phdr(int outfilefd){
     int nwrite;
-    Elf64_Phdr phdr_exec = init_a_phdr(0, PT_LOAD, PF_R|PF_W, 0x0, 0x400000, 0xff, 0x1000, 0);
-    newphdr.offsetinfile[0] = 64;
-    Elf64_Phdr phdr_heap = init_a_phdr(1, PT_LOAD, PF_W|PF_R, 0x0, 0x460000, 0xff, 0x1000, 1);
-    newphdr.offsetinfile[1] = 64+56;
-    Elf64_Phdr phdr_stack = init_a_phdr(2, PT_GNU_STACK, PF_W|PF_R, 0, 0, 0x0, 0x10, 0);
-    newphdr.offsetinfile[2] = 64+56+56;    
+    phdr_exec = init_a_phdr(0, PT_LOAD, PF_R|PF_X, 0x0, 0x400000, 0xff, 0x1000, 0);
+    newphdrlist.offsetinfile[0] = 64;
+    phdr_heap = init_a_phdr(1, PT_LOAD, PF_W|PF_R, 0x0, 0x460000, 0xff, 0x1000, 1);
+    newphdrlist.offsetinfile[1] = 64+56;
+    phdr_stack = init_a_phdr(2, PT_GNU_STACK, PF_W|PF_R, 0, 0, 0x0, 0x10, 0);
+    newphdrlist.offsetinfile[2] = 64+56+56;    
 
     nwrite = write(outfilefd, &phdr_exec, sizeof(phdr_exec));
     if (nwrite == -1){
@@ -200,11 +244,50 @@ void search_and_write_in_stub(int outfilefd, char *stub, uchar *remainder){
 }
 
 /* 
-    Update the values from the program header table
+    Update the size from the program header table of index `indx`. If `updateboth` is set,
+    then both the memsz and filesz attributes will be updated, otherwise only memsz
  */
 
-void ajust_phdr(int outfilefd){
+void ajust_phdr_size(int outfilefd, int indx, Elf64_Xword size, int updateboth){
+    Elf64_Phdr oldphdr = newphdrlist.phdrlist[indx];
+    Elf64_Phdr newphdr = init_a_phdr(indx, oldphdr.p_type, oldphdr.p_flags, oldphdr.p_offset, oldphdr.p_vaddr, size, oldphdr.p_align, updateboth);
+    
+    set_fileds_offset(outfilefd, 0, SEEK_SET);
+    write_ehdr(outfilefd);
+    
+    for (size_t i = 0; i < MAX_PHDR_NUM; i++)
+    {
+        if (i == indx)
+            _write_phdr(outfilefd, newphdr);
+        else
+            _write_phdr(outfilefd, newphdrlist.phdrlist[i]);
 
+    }
+}
+
+extern Elf64_Off segmentsize;
+
+off_t pad_zero(int outfilefd){
+    ssize_t nwrite;
+    uchar c = 0;
+
+    struct stat statbuf;
+    int err = fstat(outfilefd, &statbuf);
+    if (err == -1){
+        perror("Failed to retrieve information about output file");
+        exit(EXIT_FAILURE);
+    }
+
+    ssize_t newsize = statbuf.st_size;
+    printf("Size in pad func:%ld\n", statbuf.st_size);
+    while (statbuf.st_size % 4 != 0){
+        newsize += nwrite = write(outfilefd, &c, sizeof(uchar));
+        if (nwrite == -1){
+            perror("Failed to pad the file");
+            exit(EXIT_FAILURE);
+        }
+    }
+    return newsize;
 }
 
 void write_encoded_tree(int inputfilefd, int outfilefd) {
@@ -302,6 +385,10 @@ void write_encoded_tree(int inputfilefd, int outfilefd) {
     // int a = search_and_write_in_stub(outfilefd, "LHEL!0", &r);
     // uchar r = 0x13;
     search_and_write_in_stub(outfilefd, "LHEL!0", &remainder);
+    off_t firstloadsegmentoffset = pad_zero(outfilefd);
+    ajust_phdr_size(outfilefd, 0, firstloadsegmentoffset, 0);
+
+
     // Libera bitmaps da tabela de codificação
     for (int i = 0; i < cods; i++)
         bitmapFree(codigos[i].bits);

@@ -31,7 +31,7 @@ int main(int argc, char **argv){
     write_ehdr(outfilefd);
     write_phdr(outfilefd);
 
-    // write_encoded_tree(inputfilefd, outfilefd);
+    write_encoded_tree(inputfilefd, outfilefd);
 
     close(inputfilefd);
     close(outfilefd);

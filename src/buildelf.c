@@ -1,9 +1,9 @@
 #include "buildelf.h"
 #include "compacta.h"
 
-// extern u_int64_t		loader_size;
-// extern u_int64_t		infos_size;
-// extern void		entry_loader(void);
+extern u_int64_t        loader_size;
+extern u_int64_t        infos_size;
+extern void             entry_loader(void);
 
 /* Defining the structs we will use in this file to build the new elf file */
 #define MAX_PHDR_NUM 3
@@ -280,7 +280,7 @@ off_t pad_zero(int outfilefd){
 
     ssize_t newsize = statbuf.st_size;
     printf("Size in pad func:%ld\n", statbuf.st_size);
-    while (statbuf.st_size % 4 != 0){
+    while ((newsize % 4) != 0){
         newsize += nwrite = write(outfilefd, &c, sizeof(uchar));
         if (nwrite == -1){
             perror("Failed to pad the file");
@@ -387,8 +387,18 @@ void write_encoded_tree(int inputfilefd, int outfilefd) {
     search_and_write_in_stub(outfilefd, "LHEL!0", &remainder);
     off_t firstloadsegmentoffset = pad_zero(outfilefd);
     ajust_phdr_size(outfilefd, 0, firstloadsegmentoffset, 0);
+    
+    set_fileds_offset(outfilefd, 0, SEEK_END);
+    uchar *loader = malloc(loader_size);
+    if (!loader){
+        perror("Failed to allocate space for loader");
+        exit(EXIT_FAILURE);
+    }
+    memcpy(loader, (void *)entry_loader, loader_size);
+    write(outfilefd, loader, loader_size);
+    // pad_zero(outfilefd);
 
-
+    free(loader);
     // Libera bitmaps da tabela de codificação
     for (int i = 0; i < cods; i++)
         bitmapFree(codigos[i].bits);

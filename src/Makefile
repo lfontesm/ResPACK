@@ -10,12 +10,21 @@ OBJS=$(patsubst %.c,build/%.o,$(FONTES))
 MAINS=$(wildcard main/*.c)
 EXES=$(patsubst main/%.c,bin/%,$(MAINS))
 
+# Loader
+SRC_ASM=loader.asm
+
+OBJ_ASM=$(patsubst %.asm,build/%.o,$(SRC_ASM))
+
+NASM=nasm
+
+NFLAGS+=-f elf64
+
 # Marca os arquivos objeto para que não sejam excluídos
-.PRECIOUS: %/ $(OBJS)
+.PRECIOUS: %/ $(OBJS) $(OBJ_ASM)
 
 
 # Target padrão
-all: exe
+all: build/loader.o exe
 	cp -f ./bin/* ./
 
 clean:
@@ -38,12 +47,15 @@ exe: $(EXES)
 %/:
 	mkdir -p $@
 
+build/loader.o: loader.asm | build/
+	$(NASM) $(NFLAGS) $< -o $@
+
 # Compila bibliotecas
 build/%.o: %.c | build/ # .dep/
 	$(CC) -o $@ -c $< $(CFLAGS)
 	@#$(CC) -MM -MT $@  $< $(CFLAGS)  > .dep/$<.d
 
 # Compila de main/ para para bin/
-bin/%: main/%.c $(OBJS) | bin/ # .dep/main/
+bin/%: main/%.c $(OBJS) $(OBJ_ASM) | bin/ # .dep/main/
 	$(CC) -o $@ $^  $(CFLAGS)
 	@#$(CC) -MM -MT $@  $< $(CFLAGS)  > .dep/$<.d

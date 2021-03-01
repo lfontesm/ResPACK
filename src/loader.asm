@@ -34,9 +34,9 @@ entry_loader:
 	mov	rax, rdi
 	syscall
 
-  mov rax, 0x3c
-  mod rdi, 0
-  syscall
+	mov rax, 0x3c
+	mov rdi, 0
+	syscall
 
 	jmp	start_unpacking
 

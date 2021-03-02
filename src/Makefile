@@ -31,6 +31,7 @@ clean:
 	rm -f -r ./.dep
 	rm -f -r ./bin
 	rm -f -r ./build
+	rm packed.lhel
 
 teste: exe
 	(cd ./teste; make)

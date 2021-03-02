@@ -77,6 +77,33 @@ void write_ehdr(int outfilefd){
         
 }
 
+off_t update_entrypoint(int outfilefd, off_t loadsegmentoffset){
+    ssize_t nread, nwrite;
+    Elf64_Ehdr ehdr;
+    nread = read(outfilefd, &ehdr, sizeof(ehdr));
+    if (nread != sizeof(ehdr)){
+        fprintf(stderr, "Failed to read EHDR\n");
+        exit(EXIT_FAILURE);
+    }
+
+    set_fileds_offset(outfilefd, 0, SEEK_SET);
+
+    ehdr.e_entry = 0x400000 + loadsegmentoffset;
+    nwrite = write(outfilefd, &ehdr, sizeof(ehdr));
+    if (nwrite != sizeof(ehdr)){
+        fprintf(stderr, "Failed to write new entry point");
+        exit(EXIT_FAILURE);
+    }
+
+    off_t nextsegmentaddr = loadsegmentoffset;
+    while ((++nextsegmentaddr % 0x1000) != 0);
+    // printf("Next addr: %x\n", nextsegmentaddr);
+
+    set_fileds_offset(outfilefd, 0, SEEK_END);
+
+    return nextsegmentaddr;
+}
+
 /* 
     Initialize a program header
  */
@@ -255,8 +282,24 @@ void ajust_phdr_size(int outfilefd, int indx, Elf64_Xword size, int updateboth){
     set_fileds_offset(outfilefd, 0, SEEK_SET);
     write_ehdr(outfilefd);
     
-    for (size_t i = 0; i < MAX_PHDR_NUM; i++)
-    {
+    for (size_t i = 0; i < MAX_PHDR_NUM; i++){
+        if (i == indx)
+            _write_phdr(outfilefd, newphdr);
+        else
+            _write_phdr(outfilefd, newphdrlist.phdrlist[i]);
+
+    }
+}
+
+void ajust_phdr_addr(int outfilefd, int indx, Elf64_Addr addr, int updateboth){
+    addr += 0x400000;
+    
+    Elf64_Phdr oldphdr = newphdrlist.phdrlist[indx];
+    Elf64_Phdr newphdr = init_a_phdr(indx, oldphdr.p_type, oldphdr.p_flags, oldphdr.p_offset, addr, 0x60000, oldphdr.p_align, !updateboth);
+
+    set_fileds_offset(outfilefd, sizeof(Elf64_Ehdr), SEEK_SET);
+
+    for (size_t i = 0; i < MAX_PHDR_NUM; i++){
         if (i == indx)
             _write_phdr(outfilefd, newphdr);
         else
@@ -388,14 +431,24 @@ void write_encoded_tree(int inputfilefd, int outfilefd) {
     off_t firstloadsegmentoffset = pad_zero(outfilefd);
     ajust_phdr_size(outfilefd, 0, firstloadsegmentoffset, 0);
     
+
     set_fileds_offset(outfilefd, 0, SEEK_END);
     uchar *loader = malloc(loader_size);
     if (!loader){
         perror("Failed to allocate space for loader");
         exit(EXIT_FAILURE);
     }
+
     memcpy(loader, (void *)entry_loader, loader_size);
     write(outfilefd, loader, loader_size);
+
+    set_fileds_offset(outfilefd, 0, SEEK_SET);
+    off_t nextsegmentaddr = update_entrypoint(outfilefd, firstloadsegmentoffset);
+
+
+
+    ajust_phdr_addr(outfilefd, 1, nextsegmentaddr, 0);
+
     // pad_zero(outfilefd);
 
     free(loader);

@@ -1,5 +1,6 @@
 #include "buildelf.h"
 #include "compacta.h"
+#include "mapfile.h"
 
 extern u_int64_t        loader_size;
 extern u_int64_t        infos_size;
@@ -439,15 +440,17 @@ void write_encoded_tree(int inputfilefd, int outfilefd) {
         exit(EXIT_FAILURE);
     }
 
+    printf("firstloadsegmentoffset %lx\n", firstloadsegmentoffset);
+    
     memcpy(loader, (void *)entry_loader, loader_size);
+    memcpy(loader + loader_size - 8, &firstloadsegmentoffset, sizeof(ssize_t));
     write(outfilefd, loader, loader_size);
 
     set_fileds_offset(outfilefd, 0, SEEK_SET);
     off_t nextsegmentaddr = update_entrypoint(outfilefd, firstloadsegmentoffset);
 
-
-
     ajust_phdr_addr(outfilefd, 1, nextsegmentaddr, 0);
+
 
     // pad_zero(outfilefd);
 

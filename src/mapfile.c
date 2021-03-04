@@ -10,6 +10,8 @@
 
 // initialized in mapfile.c
 size_t filesize;
+// loader.asm
+// long original_file_sz;
 
 char *map_to_mem(char *filepath, int *fd){
     *fd = open(filepath, O_RDONLY | O_SYNC);

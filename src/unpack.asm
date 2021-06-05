@@ -1,10 +1,10 @@
-	.file	"unpack.cpp"
+	.file	"unpack.c"
 	.intel_syntax noprefix
 	.text
-	.globl	_Z6getBitP4bitsPhP8_IO_FILEPiS4_j
-	.type	_Z6getBitP4bitsPhP8_IO_FILEPiS4_j, @function
-_Z6getBitP4bitsPhP8_IO_FILEPiS4_j:
-.LFB15:
+	.globl	getBit
+	.type	getBit, @function
+getBit:
+.LFB6:
 	.cfi_startproc
 	push	rbp
 	.cfi_def_cfa_offset 16
@@ -72,17 +72,17 @@ _Z6getBitP4bitsPhP8_IO_FILEPiS4_j:
 	.cfi_def_cfa 7, 8
 	ret
 	.cfi_endproc
-.LFE15:
-	.size	_Z6getBitP4bitsPhP8_IO_FILEPiS4_j, .-_Z6getBitP4bitsPhP8_IO_FILEPiS4_j
+.LFE6:
+	.size	getBit, .-getBit
 	.section	.rodata
 	.align 8
 .LC0:
 	.string	"Error while deserializing binary sequency\n"
 	.text
-	.globl	_Z11deserializeP4treeP8_IO_FILES2_j
-	.type	_Z11deserializeP4treeP8_IO_FILES2_j, @function
-_Z11deserializeP4treeP8_IO_FILES2_j:
-.LFB16:
+	.globl	deserialize
+	.type	deserialize, @function
+deserialize:
+.LFB7:
 	.cfi_startproc
 	push	rbp
 	.cfi_def_cfa_offset 16
@@ -110,9 +110,7 @@ _Z11deserializeP4treeP8_IO_FILES2_j:
 	mov	rdi, rax
 	call	feof@PLT
 	test	eax, eax
-	setne	al
-	test	al, al
-	jne	.L17
+	jne	.L19
 	mov	rax, QWORD PTR -64[rbp]
 	mov	rdi, rax
 	call	fgetc@PLT
@@ -123,19 +121,15 @@ _Z11deserializeP4treeP8_IO_FILES2_j:
 	mov	DWORD PTR -36[rbp], eax
 	mov	rax, QWORD PTR -56[rbp]
 	mov	rdi, rax
-	call	_Z12tree_is_leafP4tree@PLT
+	call	tree_is_leaf@PLT
 	test	eax, eax
-	setne	al
-	test	al, al
-	je	.L8
+	je	.L11
 	mov	rax, QWORD PTR -56[rbp]
 	mov	rdi, rax
-	call	_Z9tree_charP4tree@PLT
+	call	tree_char@PLT
 	mov	BYTE PTR -37[rbp], al
+	jmp	.L9
 .L10:
-	mov	eax, DWORD PTR -32[rbp]
-	test	eax, eax
-	je	.L18
 	mov	r8d, DWORD PTR -76[rbp]
 	lea	rdi, -32[rbp]
 	lea	rcx, -36[rbp]
@@ -145,27 +139,23 @@ _Z11deserializeP4treeP8_IO_FILES2_j:
 	mov	r9d, r8d
 	mov	r8, rdi
 	mov	rdi, rax
-	call	_Z6getBitP4bitsPhP8_IO_FILEPiS4_j
+	call	getBit
 	movzx	eax, BYTE PTR -37[rbp]
 	mov	rdx, QWORD PTR -72[rbp]
 	mov	rsi, rdx
 	mov	edi, eax
 	call	fputc@PLT
-	jmp	.L10
-.L8:
+.L9:
 	mov	eax, DWORD PTR -32[rbp]
 	test	eax, eax
-	je	.L5
+	jne	.L10
+	jmp	.L5
+.L16:
 	mov	DWORD PTR -28[rbp], 1
 	mov	rax, QWORD PTR -56[rbp]
 	mov	QWORD PTR -24[rbp], rax
-.L13:
-	mov	eax, DWORD PTR -28[rbp]
-	test	eax, eax
-	je	.L12
-	mov	eax, DWORD PTR -32[rbp]
-	test	eax, eax
-	je	.L12
+	jmp	.L12
+.L14:
 	mov	r8d, DWORD PTR -76[rbp]
 	lea	rdi, -32[rbp]
 	lea	rcx, -36[rbp]
@@ -175,20 +165,26 @@ _Z11deserializeP4treeP8_IO_FILES2_j:
 	mov	r9d, r8d
 	mov	r8, rdi
 	mov	rdi, rax
-	call	_Z6getBitP4bitsPhP8_IO_FILEPiS4_j
+	call	getBit
 	mov	BYTE PTR -38[rbp], al
 	movzx	ecx, BYTE PTR -38[rbp]
 	lea	rdx, -28[rbp]
 	mov	rax, QWORD PTR -24[rbp]
 	mov	esi, ecx
 	mov	rdi, rax
-	call	_Z4walkP4treehPi@PLT
+	call	walk@PLT
 	mov	QWORD PTR -24[rbp], rax
-	jmp	.L13
 .L12:
 	mov	eax, DWORD PTR -28[rbp]
 	test	eax, eax
-	je	.L14
+	je	.L13
+	mov	eax, DWORD PTR -32[rbp]
+	test	eax, eax
+	jne	.L14
+.L13:
+	mov	eax, DWORD PTR -28[rbp]
+	test	eax, eax
+	je	.L15
 	mov	rax, QWORD PTR stderr[rip]
 	mov	rcx, rax
 	mov	edx, 42
@@ -200,51 +196,44 @@ _Z11deserializeP4treeP8_IO_FILES2_j:
 	call	fclose@PLT
 	mov	edi, 1
 	call	exit@PLT
-.L14:
+.L15:
 	mov	rax, QWORD PTR -24[rbp]
 	mov	rdi, rax
-	call	_Z9tree_charP4tree@PLT
+	call	tree_char@PLT
 	movzx	eax, al
 	mov	rdx, QWORD PTR -72[rbp]
 	mov	rsi, rdx
 	mov	edi, eax
 	call	fputc@PLT
-	jmp	.L8
-.L17:
-	nop
+.L11:
+	mov	eax, DWORD PTR -32[rbp]
+	test	eax, eax
+	jne	.L16
 	jmp	.L5
-.L18:
+.L19:
 	nop
 .L5:
 	mov	rax, QWORD PTR -8[rbp]
 	sub	rax, QWORD PTR fs:40
-	je	.L16
+	je	.L18
 	call	__stack_chk_fail@PLT
-.L16:
+.L18:
 	leave
 	.cfi_def_cfa 7, 8
 	ret
 	.cfi_endproc
-.LFE16:
-	.size	_Z11deserializeP4treeP8_IO_FILES2_j, .-_Z11deserializeP4treeP8_IO_FILES2_j
+.LFE7:
+	.size	deserialize, .-deserialize
 	.section	.rodata
 .LC1:
-	.string	"Uso: %s <entrada> <outFile>\n"
-.LC2:
 	.string	"r"
-	.align 8
-.LC3:
-	.string	"Falha ao abrir '%s' para leitura\n"
-.LC4:
+.LC2:
 	.string	"w"
-	.align 8
-.LC5:
-	.string	"Falha ao abrir '%s' para escrita\n"
 	.text
 	.globl	main
 	.type	main, @function
 main:
-.LFB17:
+.LFB8:
 	.cfi_startproc
 	push	rbp
 	.cfi_def_cfa_offset 16
@@ -254,18 +243,6 @@ main:
 	sub	rsp, 64
 	mov	DWORD PTR -52[rbp], edi
 	mov	QWORD PTR -64[rbp], rsi
-	cmp	DWORD PTR -52[rbp], 2
-	jg	.L20
-	mov	rax, QWORD PTR -64[rbp]
-	mov	rdx, QWORD PTR [rax]
-	mov	rax, QWORD PTR stderr[rip]
-	lea	rsi, .LC1[rip]
-	mov	rdi, rax
-	mov	eax, 0
-	call	fprintf@PLT
-	mov	eax, 0
-	jmp	.L21
-.L20:
 	mov	rax, QWORD PTR -64[rbp]
 	mov	rax, QWORD PTR 8[rax]
 	mov	QWORD PTR -40[rbp], rax
@@ -273,37 +250,15 @@ main:
 	mov	rax, QWORD PTR 16[rax]
 	mov	QWORD PTR -32[rbp], rax
 	mov	rax, QWORD PTR -40[rbp]
-	lea	rsi, .LC2[rip]
+	lea	rsi, .LC1[rip]
 	mov	rdi, rax
 	call	fopen@PLT
 	mov	QWORD PTR -24[rbp], rax
-	cmp	QWORD PTR -24[rbp], 0
-	jne	.L22
-	mov	rax, QWORD PTR stderr[rip]
-	mov	rdx, QWORD PTR -40[rbp]
-	lea	rsi, .LC3[rip]
-	mov	rdi, rax
-	mov	eax, 0
-	call	fprintf@PLT
-	mov	eax, 1
-	jmp	.L21
-.L22:
 	mov	rax, QWORD PTR -32[rbp]
-	lea	rsi, .LC4[rip]
+	lea	rsi, .LC2[rip]
 	mov	rdi, rax
 	call	fopen@PLT
 	mov	QWORD PTR -16[rbp], rax
-	cmp	QWORD PTR -16[rbp], 0
-	jne	.L23
-	mov	rax, QWORD PTR stderr[rip]
-	mov	rdx, QWORD PTR -32[rbp]
-	lea	rsi, .LC5[rip]
-	mov	rdi, rax
-	mov	eax, 0
-	call	fprintf@PLT
-	mov	eax, 1
-	jmp	.L21
-.L23:
 	mov	rax, QWORD PTR -24[rbp]
 	mov	rdi, rax
 	call	fgetc@PLT
@@ -312,22 +267,20 @@ main:
 	mov	rdi, rax
 	call	feof@PLT
 	test	eax, eax
-	setne	al
-	test	al, al
-	je	.L24
+	je	.L21
 	mov	eax, 1
-	jmp	.L21
-.L24:
+	jmp	.L22
+.L21:
 	mov	rax, QWORD PTR -24[rbp]
 	mov	rdi, rax
-	call	_Z16tree_deserializeP8_IO_FILE@PLT
+	call	tree_deserialize@PLT
 	mov	QWORD PTR -8[rbp], rax
 	movzx	ecx, BYTE PTR -41[rbp]
 	mov	rdx, QWORD PTR -16[rbp]
 	mov	rsi, QWORD PTR -24[rbp]
 	mov	rax, QWORD PTR -8[rbp]
 	mov	rdi, rax
-	call	_Z11deserializeP4treeP8_IO_FILES2_j
+	call	deserialize
 	mov	rax, QWORD PTR -24[rbp]
 	mov	rdi, rax
 	call	fclose@PLT
@@ -336,14 +289,14 @@ main:
 	call	fclose@PLT
 	mov	rax, QWORD PTR -8[rbp]
 	mov	rdi, rax
-	call	_Z9free_treeP4tree@PLT
+	call	free_tree@PLT
 	mov	eax, 0
-.L21:
+.L22:
 	leave
 	.cfi_def_cfa 7, 8
 	ret
 	.cfi_endproc
-.LFE17:
+.LFE8:
 	.size	main, .-main
 	.ident	"GCC: (GNU) 10.2.0"
 	.section	.note.GNU-stack,"",@progbits

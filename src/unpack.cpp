@@ -5,6 +5,9 @@
 
 /* 
     TODO: Implement this whole file in assembly level and copy it onto the packed binary
+    this file has the extension `.cpp` so the Makefile won't compile it and the syntax highlight will still show on VSCode
+    in order to generate the .asm file, change the extension back to `.c` so that the simble names won't be mangled
+    and run the command: `gcc unpack.c -o unpack.asm -S -masm=intel`
  */
 
 // Fetches netx bit in buffer, loads next byte when needed, and
@@ -84,24 +87,24 @@ void deserialize(Tree* tree, FILE* inputfiledf, FILE* outfilefd, uint remainder)
 
 int main(int argc, char **argv) {
     // Guarantee 2 params
-    if (argc <= 2) {
-        fprintf(stderr, "Uso: %s <entrada> <outFile>\n", argv[0]);
-        return 0;
-    }
+    // if (argc <= 2) {
+    //     fprintf(stderr, "Uso: %s <entrada> <outFile>\n", argv[0]);
+    //     return 0;
+    // }
 
     char* ARQ_ENTRADA = argv[1];
     char* ARQ_SAIDA = argv[2];
 
     FILE* inputfiledf = fopen(ARQ_ENTRADA, "r");
-    if (!inputfiledf) {
-        fprintf(stderr, "Falha ao abrir '%s' para leitura\n", ARQ_ENTRADA);
-        return 1;
-    }
+    // if (!inputfiledf) {
+    //     fprintf(stderr, "Falha ao abrir '%s' para leitura\n", ARQ_ENTRADA);
+    //     return 1;
+    // }
     FILE* outfilefd = fopen(ARQ_SAIDA, "w");
-    if (!outfilefd) {
-        fprintf(stderr, "Falha ao abrir '%s' para escrita\n", ARQ_SAIDA);
-        return 1;
-    }
+    // if (!outfilefd) {
+    //     fprintf(stderr, "Falha ao abrir '%s' para escrita\n", ARQ_SAIDA);
+    //     return 1;
+    // }
 
     // fprintf(stderr, "Descompactando\n");
 

@@ -11,7 +11,7 @@
 // initialized in mapfile.c
 size_t filesize;
 // loader.asm
-// long original_file_sz;
+// long output_file_sz;
 
 char *allocate_base(char *filepath, int *fd){
     *fd = open(filepath, O_RDONLY | O_SYNC);

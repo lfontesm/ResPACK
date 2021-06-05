@@ -15,7 +15,7 @@
 [BITS 64]
 
 ; section .bss
-; original_file_sz: resq 1
+; output_file_sz: resq 1
 
 section .text
 
@@ -28,9 +28,33 @@ infos_size	dq	end - info_start
 
 entry_loader:
 
+	; int3
+
+	;; How to debug this code:  Uncomment the 'int3' breakpoint instruction above.  --> (This was literally copy pasted from UPX doc)
+	;; Invoke gdb, and give a 'run' command.  Define a single-step macro such as		you have to stepthrough the code with this otherwise
+	;;      define g																	it doesn't work (the program simply executes disregarding your stepping).
+	;;      stepi
+	;;      x/i $pc
+	;;      end
+	;; and a step-over macro such as
+	;;      define h
+	;;      x/2i $pc
+	;;      tbreak *$_
+	;;      continue
+	;;      x/i $pc
+	;;      end
+	;; Step through the code; remember that <Enter> repeats the previous command.
+
 	pushfq
 	pushx	rax, rdi, rsi, rsp, rdx, rcx
 
+	; preamble
+	push rbp
+	mov rbp, rsp
+
+	; allocate space on the stack
+	sub rsp, 64
+	
 	; write syscall
 	mov	rdi, 1
 	lea	rsi, [rel msg]
@@ -44,20 +68,20 @@ entry_loader:
 	mov rax, 2
 	syscall
 
-	; test if file is 0
+	; test if file fd is 0
 	test rax, rax
 	jz end_of_func
 
-	; rbx = open return
-	mov rbx, rax
+	; rbp-64 = open return
+	mov [rbp-64], rax
 
 	; mmap syscall (Allocate space to read to process)
 	xor r9, r9
-	mov r8, -1
-	mov r10, 0x22
-	mov rsi, [rel original_file_sz]
-	mov rdx, 3
-	xor edi, edi
+	mov r8, -1						; fd is -1 (recquired for MAP_ANONYMOUS)
+	mov r10, 0x22					; MAP_PRIVATE | MAP_ANONYMOUS
+	mov rsi, [rel output_file_sz]
+	mov rdx, 3						; PROT_READ | PROT_WRITE
+	xor edi, edi					; addr is NULL
 	mov rax, 9
 	syscall
 
@@ -65,16 +89,16 @@ entry_loader:
 	cmp rax, -1
 	jz end_of_func
 
-	; r13 = mmap return
-	mov r13, rax
+	; [rbp-56] = first mmap return
+	mov [rbp-56], rax
 
 	; Copy the content of the file into the new allocated memory
 	xor r9, r9
-	mov r8, rbx
-	mov r10, 0x12
-	mov rsi, [rel original_file_sz]
+	mov r8, [rbp-64]				; fd is the value of open fetched above
+	mov r10, 0x12					; MAP_PRIVATE | AP_FIXED
+	mov rsi, [rel output_file_sz]
 	mov rdx, 3
-	mov rdi, r13
+	mov rdi, [rbp-56]				; addr is result of mmap above
 	mov rax, 9
 	syscall
 
@@ -82,25 +106,63 @@ entry_loader:
 	cmp rax, -1
 	jz end_of_func
 
-	; r13 = mmap return
-	mov r13, rax
+	; [rbp - 48] = second mmap return (the region of mem where the contents were copied)
+	mov [rbp - 48], rax
 
 	; gets the value of "remainder" in code
-	mov rdi, r13
+	mov rdi, [rbp - 48]
 	lea rsi, [rel stub]
 	call get_remainder
 
-	; save the return address
-	push rax
+	; save the return value (the ramainder)
+	mov [rbp-40], rax
+
+	; fetch the size of the original file and save it
+	; [rbp-32] = original file size
+	mov eax, dword [rdi]
+	mov [rbp-32], rax
+
+	; map in memory a space to unpack the file
+	xor r9, r9
+	mov r8, -1			; fd is -1
+	mov r10, 0x21		; MAP_SHARED | MAP_ANONYMOUS
+	mov rsi, [rbp-32]	; length is equal to the size of the original unpacked binary
+	mov rdx, 7			; PROT_READ|EXEC|WRITE
+	xor rdi, rdi		; addr is NULL
+	mov rax, 9			; syscall number
+	syscall
+
+	; check if mmap was successful
+	cmp rax, -1
+	jz end_of_func
+
+	; save the base addr allocated
+	; [rbp-24] = rax
+	mov [rbp-24], rax
 
 	; close the opened file
-	mov rdi, rbx
+	mov rdi, [rbp-64]
 	mov rax, 3
 	syscall
 
+	; save the size of original file again
+	; TODO: the unpacking routine
+
 	;munmap
-	mov rsi, [rel original_file_sz]
-	mov rdi, r13
+	mov rsi, [rel output_file_sz]
+	mov rdi, [rbp-56]
+	mov rax, 0xb
+	syscall
+	
+	;munmap
+	mov rsi, [rel output_file_sz]
+	mov rdi, [rbp-48]
+	mov rax, 0xb
+	syscall
+
+	;munmap
+	mov rsi, [rbp-32]
+	mov rdi, [rbp-24]
 	mov rax, 0xb
 	syscall
 
@@ -118,31 +180,17 @@ stub	 db  "LEL", 0
 filename db "/proc/self/exe", 0
 
 get_remainder:
-	push rcx				; save value of rcx and rbx
-	push rbx
-
+	push rcx				; save value of rcx
 .reset_rcx:
 	xor rcx, rcx
-.loop:
-	mov bl, byte [rsi+rcx]	; mov al, byte [edi+ecx]	; Subtracts both character to see if they are the same
-	mov dl, byte [rsi+rcx]
-	sub bl, byte [rdi]		; ----
-	jnz .noteq
-	inc cl
-	inc rdi
-	xor dl, 0x21			; Check if the end of the stub was found
-	jz .eq					; If end of stub was found, then the stub was found
-	jmp .loop				; Continue iterating the string otherwise
-
-.noteq:						; Routine to continue looking for the stub
-	inc rdi
-	jmp .reset_rcx
+.fetch_remainder:
+	add rdi, 0x7b			; The remainder will always be on offset 0x7b
 
 .eq:
-	pop rbx
-	pop rcx					; restore rcx and rbx
+	pop rcx					; restore rcx
 	xor rax, rax
 	mov al, byte [rdi]		; Return the address of the remainder, positioned after the end of stub
+	inc rdi					; Increment rdi after fetching the remainder
 	ret
 
 start_unpacking:
@@ -167,7 +215,7 @@ info_start:
 info_key:		  dq 0x9999999999999999
 info_addr:		  dq 0xAAAAAAAAAAAAAAAA
 info_size:		  dq 0xBBBBBBBBBBBBBBBB
-original_file_sz: dq 0x0000000000000000
+output_file_sz:   dq 0x0000000000000000
 
 
 end:

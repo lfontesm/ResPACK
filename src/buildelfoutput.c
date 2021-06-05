@@ -245,12 +245,14 @@ void write_encoded_tree(int inputfilefd, int outfilefd) {
 
     // Buffer used to get the size of the input file.
     // This size will be written next to the stub.
-    struct stat statbuf;
-    int fstaterr = fstat(inputfilefd, &statbuf);
+    struct stat inputFileStatBuf;
+    int fstaterr = fstat(inputfilefd, &inputFileStatBuf);
     if (fstaterr == -1) {
          perror("Failed to retrieve information about input file");
         exit(EXIT_FAILURE);
     }
+
+
 
     // print_freqs(stderr, freq);    /// DEBUG
 
@@ -295,7 +297,7 @@ void write_encoded_tree(int inputfilefd, int outfilefd) {
         puts("Something went wrong when writing the LEL stub");
         exit(EXIT_FAILURE);
     }
-    ssize_t sizen = write(outfilefd, &statbuf.st_size, 4);
+    ssize_t sizen = write(outfilefd, &inputFileStatBuf.st_size, 4);
     if (sizen != 4){
         puts("Something went wrong when writing the size of original file next to sutb");
         exit(EXIT_FAILURE);
@@ -326,6 +328,8 @@ void write_encoded_tree(int inputfilefd, int outfilefd) {
     
 
     set_fileds_offset(outfilefd, 0, SEEK_END);
+    // Allocates memory for the loader
+    // loader_size is calculated in loader.asm
     uchar *loader = malloc(loader_size);
     if (!loader){
         perror("Failed to allocate space for loader");
@@ -334,8 +338,13 @@ void write_encoded_tree(int inputfilefd, int outfilefd) {
 
     printf("entryPointOff %lx\n", entryPointOff);
     
+    off_t outputFileSize = entryPointOff + loader_size;
+
+    // Copies the loader (the compiled version of loader.asm into the variable)
     memcpy(loader, (void *)entry_loader, loader_size);
-    memcpy(loader + loader_size - 8, &entryPointOff, sizeof(ssize_t));
+    // Writes the value of outputFileSize in output_file_sz
+    memcpy(loader + loader_size - 8, &outputFileSize, sizeof(ssize_t));
+    // Writes the loader on the packed binary
     write(outfilefd, loader, loader_size);
 
     set_fileds_offset(outfilefd, 0, SEEK_SET);

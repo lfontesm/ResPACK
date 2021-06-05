@@ -4,7 +4,8 @@
 
 
 /* 
-    TODO: Implement this whole file in assembly level and copy it onto the packed binary
+    TODO: Implement the logic of this file in assembly level and copy it onto the packed binary.
+          the implementation shall be on `loader.asm`
     this file has the extension `.cpp` so the Makefile won't compile it and the syntax highlight will still show on VSCode
     in order to generate the .asm file, change the extension back to `.c` so that the simble names won't be mangled
     and run the command: `gcc unpack.c -o unpack.asm -S -masm=intel`

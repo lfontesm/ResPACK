@@ -1,3 +1,24 @@
+; 
+; 
+; 
+; 
+; 
+; 
+; 
+; 
+; 
+; 
+; FILE USED TO GET AN IDEA ON WHAT NEEDS TO BE DONE
+; 
+; 
+; 
+; 
+; 
+; 
+; 
+; 
+; 
+; 
 	.file	"unpack.c"
 	.intel_syntax noprefix
 	.text

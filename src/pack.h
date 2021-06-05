@@ -7,17 +7,17 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include "estruturas.h"
+#include "structures.h"
 #include "util.h"
 #include "bitmap.h"
-#include "arvore.h"
+#include "tree.h"
 #include "ELF.h"
 
 void count_char(int* freqVet, int inputfilefd);
 
-void organizaCodigos (Code* codigos, uint cods, bitmap* codigosVet[256]);
+void organize_code (Code* codes, uint cods, bitmap* codesVec[256]);
 
-uint codificaArquivo(int inputfilefd, int outfilefd, bitmap* codigosVet[256], uint cods);
+uint encode_file(int inputfilefd, int outfilefd, bitmap* codesVec[256], uint cods);
 
 
 #endif // COMPACTA_H_

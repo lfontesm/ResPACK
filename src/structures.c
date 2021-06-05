@@ -1,4 +1,4 @@
-#include "estruturas.h"
+#include "structures.h"
 
 #include <stdio.h>
 
@@ -15,10 +15,10 @@ int _compCodsAlf(const void *c1, const void *c2) {
     return (int) (cod1->c - cod2->c);
 }
 
-// bitmap* pegaCodigo(Code* codigos, uint ncods, uchar c){
+// bitmap* pegaCodigo(Code* codes, uint ncods, uchar c){
 //     for (int i = 0; i < ncods; i++){
-//         if (codigos[i].c == c)
-//             return &codigos[i].bits;
+//         if (codes[i].c == c)
+//             return &codes[i].bits;
 //     }
 //     return NULL;
 // }

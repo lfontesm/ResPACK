@@ -5,7 +5,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "ELF.h"
-#include "libelf.h"
+#include "mapelfinput.h"
 
 #if !defined(SECTION_H_)
 #define SECTION_H_

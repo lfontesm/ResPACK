@@ -1,4 +1,4 @@
-/** Define um TAD representando um mapa de bits.
+/** Defines an ADT representig a bitmap.
  * @file bitmap.h
  * @author Joao Paulo Andrade Almeida (jpalmeida@inf.ufes.br)
  */
@@ -7,12 +7,12 @@
 #define BITMAP_H_
 
 /**
- * Estrutura para representar um mapa de bits.
+ * Structure to represent a bitmap.
  */
 typedef struct {
-	unsigned int max_size;		///< tamanho maximo em bits
-	unsigned int length; 		///< tamanho atual em bits
-	unsigned char* contents; 	///< conteudo do mapa de bits
+	unsigned int max_size;		///< max size in bits
+	unsigned int length; 		///< current size in bits
+	unsigned char* contents; 	///< bitmap content
 } bitmap;
 
 unsigned char* bitmapGetContents(bitmap bm);

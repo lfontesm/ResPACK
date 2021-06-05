@@ -2,7 +2,7 @@
 #define _H_UTIL
 
 #include <stdio.h>
-#include "estruturas.h"
+#include "structures.h"
 
 typedef unsigned int uint;
 typedef unsigned char uchar;
@@ -11,21 +11,23 @@ typedef unsigned char uchar;
 /**
  * Aloca na heap espaço para uma string de `LEN` caracteres
  * O espaço para o byte nulo é adicionado automaticamente
+ * Allocate space in the heap to a string with `LEN` chars
+ * the space to null byte is added automatically
  */
-#define ALOCA_STR(LEN) ((char*) malloc((LEN)+1))
+#define ALLOC_STR(LEN) ((char*) malloc((LEN)+1))
 
 
 // Debug
 
-void printaCharInt(FILE* arq, uchar c);
+void print_int_char(FILE* arq, uchar c);
 
-void printaBits(FILE* saida, Bits bits);
+void print_bits(FILE* outFile, Bits bits);
 
-void printaBitmap(FILE *saida, bitmap bits);
+void print_bitmap(FILE *outFile, bitmap bits);
 
-void printaCodigos(FILE *saida, Code *cods, uint n);
+void print_codes(FILE *outFile, Code *cods, uint n);
 
-void printaFreqs(FILE *arq, int* freqVet);
+void print_freqs(FILE *arq, int* freqVet);
 
 
 #endif //_H_UTIL

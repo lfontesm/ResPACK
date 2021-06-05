@@ -13,7 +13,7 @@ size_t filesize;
 // loader.asm
 // long original_file_sz;
 
-char *map_to_mem(char *filepath, int *fd){
+char *allocate_base(char *filepath, int *fd){
     *fd = open(filepath, O_RDONLY | O_SYNC);
     if (*fd == -1){
         perror("Failed to open target file");

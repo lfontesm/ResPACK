@@ -85,10 +85,10 @@ entry_loader:
 	; r13 = mmap return
 	mov r13, rax
 
-	; looks for stub
+	; gets the value of "remainder" in code
 	mov rdi, r13
 	lea rsi, [rel stub]
-	call strcmp
+	call get_remainder
 
 	; save the return address
 	push rax
@@ -114,10 +114,10 @@ end_of_func:
 
 msg	db	"[Unpacking...]", 10, 0
 msg_len	equ	$ - msg
-stub	 db  "LHEL!", 0
+stub	 db  "LEL", 0
 filename db "/proc/self/exe", 0
 
-strcmp:
+get_remainder:
 	push rcx				; save value of rcx and rbx
 	push rbx
 
@@ -141,7 +141,8 @@ strcmp:
 .eq:
 	pop rbx
 	pop rcx					; restore rcx and rbx
-	lea rax, [rsi+1]		; Return the address of the remainder, positioned after the end of stub
+	xor rax, rax
+	mov al, byte [rdi]		; Return the address of the remainder, positioned after the end of stub
 	ret
 
 start_unpacking:

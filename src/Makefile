@@ -17,7 +17,7 @@ OBJ_ASM=$(patsubst %.asm,build/%.o,$(SRC_ASM))
 
 NASM=nasm
 
-NFLAGS+=-f elf64
+NFLAGS+=-f elf64 -g
 
 # Marca os arquivos objeto para que não sejam excluídos
 .PRECIOUS: %/ $(OBJS) $(OBJ_ASM)
@@ -31,6 +31,7 @@ clean:
 	rm -f -r ./.dep
 	rm -f -r ./bin
 	rm -f -r ./build
+	rm PUFEB
 	rm packed.lhel
 
 teste: exe

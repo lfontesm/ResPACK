@@ -1,4 +1,4 @@
-#include "compacta.h"
+#include "pack.h"
 
 const char* SUFIXO_COMP = ".comp";
 
@@ -17,70 +17,70 @@ void count_char(int* freqVet, int inputfilefd){
     // }
 }
 
-// Coloca os bitmaps referentes aos cógigos em uma tabela (vetor) indexado
-// pelo valor dos caracteres
-void organizaCodigos (Code* codigos, uint cods, bitmap* codigosVet[256]) {
+// Stores the bitmaps refering to the codes in a vector indexed
+// by the int value of chars
+void organize_code (Code* codes, uint cods, bitmap* codesVec[256]) {
     for(int i = 0; i < cods; i++) {
-        Code* codigo = codigos + i;
-        codigosVet[codigo->c] = &codigo->bits;
+        Code* code = codes + i;
+        codesVec[code->c] = &code->bits;
     }
 }
 
 /**
- * Utiliza uma tabela de códigos `codigosVet` para codificar
- * o arquivo de `entrada`, escrevendo em `saida`
- * Retorna  Número de bits no último byte da codificação
+ * Use a code table `codesVec` to encode
+ * the file `inputfilefd`, writing in `outfilefd`
+ * Returns the number of bits in the last byte of the enconding
  */
-Elf64_Off segmentsize;
-uint codificaArquivo(int intputfilefd, int outfilefd, bitmap* codigosVet[256], uint cods){
-    // Armazena o byte a ser escrito na saída
+// Elf64_Off segmentsize = (unsigned long long)64;
+uint encode_file(int inputfilefd, int outfilefd, bitmap* codesVec[256], uint cods){
+    // Stores the byte to be written in the output
     Bits outbits = {0,'\0'};
 
-    // Enquando ainda há caracteres para ler
+    // While it still remains chars to be read
     uchar ch;
     ssize_t nread, nwrite;
 
-    while (nread = read(intputfilefd, &ch, sizeof(ch)), nread > 0) {
-        // Busca o código correspondente ao caractere
-        bitmap* chbits = codigosVet[ch];  // pegaCodigo(codigos, cods, ch);
+    while (nread = read(inputfilefd, &ch, sizeof(ch)), nread > 0) {
+        // Fetch the code "pointed" by the char
+        bitmap* chbits = codesVec[ch];  // pegaCodigo(codes, cods, ch);
         if (!chbits) {
-            fprintf(stderr, "AVISO: código inexistente\n");
+            fprintf(stderr, "WARNING: nonexistent code\n");
             exit(1);
         }
 
-        // Adiciona cada bit ao byte de saída
+        // Add each bit to ouput byte
         uint tam = bitmapGetLength(*chbits);
         for(int i = 0; i < tam; i++) {
             ADD_BIT(outbits, bitmapGetBit(*chbits, i));
 
-            // Quando preenche 8 bits
+            // When it reaches 8 bits
             if (outbits.pos == 8){
-                // Escreve na saída
-                // fputc(outbits.data, saida);
-                segmentsize += nwrite = write(outfilefd, &outbits.data, sizeof(outbits.data));
+                // Writes in output
+                // fputc(outbits.data, outFile);
+                /* segmentsize +=  */nwrite = write(outfilefd, &outbits.data, sizeof(outbits.data));
                 if (nwrite == -1){
                     perror("Failed to write encoded file");
                     exit(EXIT_FAILURE);
                 }
-                // Reseta o byte de saída
-                ZERA_BITS(outbits);
+                // Resets output byte
+                ZERO_BITS(outbits);
             }
         }
     }
 
 
 
-    // Se ainda sobraram bits sem completar um byte
+    // If it still remains bits without completing a byte
     if (outbits.pos) {
-        // Escreve o byte
-        // fputc(outbits.data, saida);
-        segmentsize += nwrite = write(outfilefd, &outbits.data, sizeof(outbits.data));
+        // Writes byte
+        // fputc(outbits.data, outFile);
+        /* segmentsize +=  */nwrite = write(outfilefd, &outbits.data, sizeof(outbits.data));
         if (nwrite == -1){
             perror("Failed to write encoded file");
             exit(EXIT_FAILURE);
         }
         // pad_zero(outfilefd);
-        // e retorna o número de bits significativos no último byte
+        // and returns the number of significant bits in last byte
         return outbits.pos;
     }
 
@@ -90,12 +90,12 @@ uint codificaArquivo(int intputfilefd, int outfilefd, bitmap* codigosVet[256], u
 
 
 // const char* ARQ_ENTRADA = "teste/entrada.txt";
-// const char* ARQ_SAIDA = "teste/saida.bin";
+// const char* ARQ_SAIDA = "teste/outFile.bin";
 
 // int main(int argv, char** argc) {
 
 //     if (argv <= 1) { /* garante um parâmetro */
-//         fprintf(stderr, "Uso: %s <entrada> [saida]\n", argc[0]);
+//         fprintf(stderr, "Uso: %s <entrada> [outFile]\n", argc[0]);
 //         exit(1);
 //     }
 
@@ -110,7 +110,7 @@ uint codificaArquivo(int intputfilefd, int outfilefd, bitmap* codigosVet[256], u
 //     // Senão, cria um nome concatenando o sufixo ".comp" ao nome de entrada
 //     else {
 //         _nome_saida =
-//             ALOCA_STR( strlen(ARQ_ENTRADA) + strlen(SUFIXO_COMP) );
+//             ALLOC_STR( strlen(ARQ_ENTRADA) + strlen(SUFIXO_COMP) );
 //         strcpy(_nome_saida, ARQ_ENTRADA);
 //         strcat(_nome_saida, SUFIXO_COMP);
 //         ARQ_SAIDA = _nome_saida;
@@ -135,49 +135,49 @@ uint codificaArquivo(int intputfilefd, int outfilefd, bitmap* codigosVet[256], u
 //     count_char(freq, arqEntrada);
 //     rewind(arqEntrada);
 
-//     // printaFreqs(stderr, freq);    /// DEBUG
+//     // print_freqs(stderr, freq);    /// DEBUG
 
-//     // Cria a lista de folhas a partir da tabela de frequências
-//     ListaArv* lista = Lista_cria();
+//     // Cria a list de folhas a partir da tabela de frequências
+//     TreeList* list = create_list();
 //     for (int i = 0; i < 256; i++) {
 //         int fq = freq[i];
 //         if (fq){
-//             lista = Lista_insOrd(lista, criaFolha((uchar)i, fq));
+//             list = list_insOrd(list, leaf_create((uchar)i, fq));
 //         }
 //     }
 
-//     // Lista_imprime(stderr, lista); fprintf(stderr, "\n");  /// DEBUG
+//     // list_print(stderr, list); fprintf(stderr, "\n");  /// DEBUG
 
-//     // Obtém a árvore ótima e libera a lista (agora vazia)
-//     Arv* huff = constroiArvoreOtima(lista);
-//     Lista_libera(lista);
+//     // Obtém a árvore ótima e libera a list (agora vazia)
+//     Tree* huff = build_optimal_tree(list);
+//     free_list(list);
 
-//     // Arv_imprime(stderr, huff); fprintf(stderr, "\n\n");   /// DEBUG
+//     // print_tree(stderr, huff); fprintf(stderr, "\n\n");   /// DEBUG
 
 //     // Varre a árvore para criar a tabela de códigos
-//     Code codigos[256]; uint cods = 0;
-//     Arv_criaCodigos(huff, codigos, &cods);
+//     Code codes[256]; uint cods = 0;
+//     tree_create_codes(huff, codes, &cods);
 
 //     // // Imprime ćodigos em ordem alfabética
-//     // qsort(codigos, cods, sizeof(Code), _compCodsAlf);
-//     // printaCodigos(stderr, codigos, cods); fprintf(stderr, "\n");    /// DEBUG
+//     // qsort(codes, cods, sizeof(Code), _compCodsAlf);
+//     // print_codes(stderr, codes, cods); fprintf(stderr, "\n");    /// DEBUG
 
 //     // // Coloca em ordem de menor quantidade de bits (maior frequência)
-//     // qsort(codigos, cods, sizeof(Code), _compCodsFreq);
-//     // printaCodigos(stderr, codigos, cods); fprintf(stderr, "\n");    /// DEBUG
+//     // qsort(codes, cods, sizeof(Code), _compCodsFreq);
+//     // print_codes(stderr, codes, cods); fprintf(stderr, "\n");    /// DEBUG
 
 
 //     // Coloca os bitmaps dos códigos em um vetor associando pelas posições
-//     bitmap* codigosVet[256] = {NULL};
-//     organizaCodigos(codigos, cods, codigosVet);
+//     bitmap* codesVec[256] = {NULL};
+//     organize_code(codes, cods, codesVec);
 
 
 //     // Reserva 1 byte no início do arquivo
 //     fputc('\0', arqSaida);
 
 //     // Codifica uma árvore para um bitmap
-//     bitmap arvSer = Arv_serializa(huff);
-//     // printaBitmap(stderr, arvSer); fprintf(stderr, "\n\n");    /// DEBUG
+//     bitmap arvSer = tree_serialize(huff);
+//     // print_bitmap(stderr, arvSer); fprintf(stderr, "\n\n");    /// DEBUG
 
 //     // ? Passar último byte (buffer) para a parte de codificação do texto?
 
@@ -189,11 +189,11 @@ uint codificaArquivo(int intputfilefd, int outfilefd, bitmap* codigosVet[256], u
 //             fputc(arvData[i], arqSaida);
 //     }
 
-//     Arv_libera(huff);
+//     free_tree(huff);
 //     bitmapFree(arvSer);
 
 //     // Codifica o arquivo de entrada, escrevendo
-//     uint resto = codificaArquivo(arqEntrada, arqSaida, codigosVet, cods);
+//     uint resto = encode_file(arqEntrada, arqSaida, codesVec, cods);
 
 //     // fprintf(stderr, "resto: %u\n", resto);  /// DEBUG
 
@@ -203,7 +203,7 @@ uint codificaArquivo(int intputfilefd, int outfilefd, bitmap* codigosVet[256], u
 
 //     // Libera bitmaps da tabela de codificação
 //     for (int i = 0; i < cods; i++)
-//         bitmapFree(codigos[i].bits);
+//         bitmapFree(codes[i].bits);
 
 //     if (_nome_saida) free(_nome_saida);
 //     fclose(arqEntrada);

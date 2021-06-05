@@ -4,11 +4,11 @@
 // size_t filesize;
 
 typedef struct {
-    Elf64_Ehdr *ehdr;
-    Elf64_Shdr *shdr;
-    Elf64_Phdr *phdr;
-    u_char      **sdat;
-    size_t      filesize;
+    Elf64_Ehdr    *ehdr;
+    Elf64_Shdr    *shdr;
+    Elf64_Phdr    *phdr;
+    unsigned char **sdat;
+    size_t        filesize;
 } Elf64_File, * PELF;
 
 PELF map_elf(const char *base);

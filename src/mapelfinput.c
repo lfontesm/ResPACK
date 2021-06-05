@@ -1,9 +1,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "mapfile.h"
+#include "basemem.h"
 #include "ELF.h"
-#include "libelf.h"
+#include "mapelfinput.h"
 
 #define PRINT_TYPE(a, cpr) if ((a) == (cpr)) puts(#cpr)
 #define MALLOC_ERR(a) {puts((a)); exit(EXIT_FAILURE);}
@@ -61,10 +61,10 @@ PELF map_elf(const char *base){
     if (!elf->shdr)
         MALLOC_ERR("Failed to allocate space for Section Headers");
     memset(elf->shdr, 0, sizeof(Elf64_Shdr) * shnum);
-    elf->sdat = malloc(sizeof(u_char *) * shnum);
+    elf->sdat = malloc(sizeof(unsigned char *) * shnum);
     if (!elf->sdat)
         MALLOC_ERR("Failed to allocate space for data of Section Headers");
-    memset(elf->sdat, 0, sizeof(u_char *) * shnum);
+    memset(elf->sdat, 0, sizeof(unsigned char *) * shnum);
     // ==+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+====+_+==
     
     
@@ -83,7 +83,7 @@ PELF map_elf(const char *base){
         printf("\t[+] Section starts @ offset 0x%08llx in file and has size of %llx\n", shdr->sh_offset, ssize);        
         
         if (shdr->sh_type == SHT_NOBITS){
-            elf->sdat[indx] = (u_char *)0;
+            elf->sdat[indx] = (unsigned char *)0;
         }
         else {
             elf->sdat[indx] = malloc(ssize);

@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <ctype.h>
-#include "estruturas.h"
+#include "structures.h"
 
 
 // Debug
@@ -11,7 +11,7 @@
 /** 
  * Imprime o caractere se for possível e seu inteiro correspondente
  */
-void printaCharInt(FILE* arq, uchar c){
+void print_int_char(FILE* arq, uchar c){
     if (isprint(c)) {
         fprintf(arq, "[%c]", c);
     }
@@ -19,34 +19,34 @@ void printaCharInt(FILE* arq, uchar c){
 }
 
 
-void printaBits(FILE* saida, Bits bits) {
+void print_bits(FILE* outFile, Bits bits) {
     for (int i = 0; i < bits.pos; i++) {
-        fprintf(saida, "%d",  PEGA_BIT(bits, i));
+        fprintf(outFile, "%d",  GET_BIT(bits, i));
     }
 }
 
-void printaBitmap(FILE *saida, bitmap bits){
+void print_bitmap(FILE *outFile, bitmap bits){
     uint tam = bitmapGetLength(bits);
     for (int i = 0; i < tam; i++){
-        fprintf(saida, "%d", bitmapGetBit(bits, i));
+        fprintf(outFile, "%d", bitmapGetBit(bits, i));
     }
 }
 
-void printaCodigos(FILE *saida, Code *cods, uint n){
+void print_codes(FILE *outFile, Code *cods, uint n){
     for (uint i = 0; i < n; i++){
         uchar chr = cods[i].c;
-        fprintf(saida, "[%4u] ", (int) chr);
+        fprintf(outFile, "[%4u] ", (int) chr);
         if (isprint(chr))
-            fprintf(saida, "(%4c): ", chr);
+            fprintf(outFile, "(%4c): ", chr);
         else
-            fprintf(saida, "(    ): ");
-        printaBitmap(saida, cods[i].bits);
-        fprintf(saida, "\n");
+            fprintf(outFile, "(    ): ");
+        print_bitmap(outFile, cods[i].bits);
+        fprintf(outFile, "\n");
     }
 }
 
 
-void printaFreqs(FILE *arq, int* freqVet){
+void print_freqs(FILE *arq, int* freqVet){
     for (int i = 0; i < 64; i++) {
         int n = i*4;
         fprintf(arq, "| ");

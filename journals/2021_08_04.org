@@ -1,0 +1,2 @@
+* Integrate packer with https://github.com/serge1/ELFIO.
+ELFIO is a header-only C++ library intended for reading and generating files in the ELF binary format.

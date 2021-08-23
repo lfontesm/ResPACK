@@ -26,6 +26,8 @@ global	infos_size:data
 loader_size	dq	end - entry_loader
 infos_size	dq	end - info_start
 
+%include "tree.h"
+
 entry_loader:
 
 	; int3
@@ -55,6 +57,8 @@ entry_loader:
 	; allocate space on the stack
 	sub rsp, 64
 	
+	mov rbp, [rel test]
+
 	; write syscall
 	mov	rdi, 1
 	lea	rsi, [rel msg]
@@ -167,6 +171,10 @@ entry_loader:
 	syscall
 
 end_of_func:
+	; finish context stack
+	popx rax, rdi, rsi, rsp, rdx, rcx
+	popfq
+
 	; exit syscall
 	mov rax, 0x3c
 	mov rdi, 0
@@ -192,6 +200,17 @@ get_remainder:
 	mov al, byte [rdi]		; Return the address of the remainder, positioned after the end of stub
 	inc rdi					; Increment rdi after fetching the remainder
 	ret
+
+malloc:						; malloc function
+	push rbp
+	mov rbp, rsp
+
+	xor rdi, rdi
+	mov rax, 0xc
+	syscall					; brk syscall to get the top of the program break
+
+	mov rdi, rax
+	add rdi, 0x5000		    ; mallocs 5kb
 
 start_unpacking:
 	mov	rax, [rel info_addr]

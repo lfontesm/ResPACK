@@ -1,8 +1,0 @@
-{
-    "files.associations": {
-        "ELF.C": "cpp",
-        "typeinfo": "c",
-        "mapelfinput.h": "c",
-        "basemem.h": "c"
-    }
-}

@@ -2,6 +2,7 @@
     "files.associations": {
         "ELF.C": "cpp",
         "typeinfo": "c",
-        "libelf.h": "c"
+        "mapelfinput.h": "c",
+        "basemem.h": "c"
     }
 }

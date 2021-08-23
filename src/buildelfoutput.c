@@ -6,6 +6,20 @@
     This file will be responsible for building the output, e.g, the packed ELF binary
 */
 
+/* 
+    TODO
+    The ELF output should have the segments arranged such as
+
+    Type           Offset             VirtAddr           PhysAddr
+                   FileSiz            MemSiz              Flags  Align
+    LOAD           0x0000000000000000 0x0000000000400000 0x0000000000400000
+                   0x0000000000045ed8 0x0000000000045ed8  R E    0x1000     <- This is effectively the .code segment. Where the entry point and code will reside
+    LOAD           0x0000000000000000 0x0000000000446000 0x0000000000446000 <- Notice how this segments starts on an address of 0x1000 alignment 
+                   0x0000000000000000 0x000000000006cbc0  RW     0x1000     <- This segment will be the heap. Size will be "arbitrary" but not necessarily this one
+
+ */
+
+
 extern u_int64_t        loader_size;
 extern u_int64_t        infos_size;
 extern void             entry_loader(void);
@@ -31,7 +45,7 @@ NEW_EHDR newehdr = {
         .e_flags     = 0,
         .e_ehsize    = 64,
         .e_phentsize = 56,
-        .e_phnum     = 1,
+        .e_phnum     = 2,
         .e_shentsize = 64,
         .e_shnum     = 0,
         .e_shstrndx  = 0
@@ -39,13 +53,24 @@ NEW_EHDR newehdr = {
     .offsetinfile = 0
 };
 
-Elf64_Phdr phdr__ = {
+Elf64_Phdr code__ = {
     .p_type   = PT_LOAD,
     .p_flags  = PF_X | PF_R,
-    .p_offset = 0x40,
-    .p_vaddr  = 0x400040,
-    .p_paddr  = 0x400040,
+    .p_offset = 0x0,
+    .p_vaddr  = 0x400000,
+    .p_paddr  = 0x400000,
     .p_filesz = 0xffffffff,
+    .p_memsz  = 0xffffffff,
+    .p_align  = 0x1000
+};
+
+Elf64_Phdr heap__ = {
+    .p_type   = PT_LOAD,
+    .p_flags  = PF_W | PF_R,
+    .p_offset = 0x0,
+    .p_vaddr  = 0xffffffff,
+    .p_paddr  = 0xffffffff, // <- will start after the end of the code segment (remember to respect the alignment)
+    .p_filesz = 0,
     .p_memsz  = 0xffffffff,
     .p_align  = 0x1000
 };
@@ -105,8 +130,15 @@ off_t update_entrypoint(int outfilefd, off_t newEntryPointOff){
     Write program header table
  */
 void write_phdr(int outfilefd){
-    int nwrite = write(outfilefd, &phdr__, sizeof(phdr__));
-    if (nwrite < sizeof(phdr__)){
+    // Write the code segment
+    int nwrite = write(outfilefd, &code__, sizeof(code__));
+    if (nwrite < sizeof(code__)){
+        perror("Operation write failed: ");
+        exit(EXIT_FAILURE);
+    }
+    // Write the heap segment
+    nwrite = write(outfilefd, &heap__, sizeof(heap__));
+    if (nwrite < sizeof(heap__)){
         perror("Operation write failed: ");
         exit(EXIT_FAILURE);
     }
@@ -182,32 +214,59 @@ void search_and_write_in_stub(int outfilefd, char *stub, uchar *remainder){
     Update the size of a header from the program header table.
     Since this file only has 1 Phdr, update that one
  */
-void ajust_phdr_size(int outfilefd, int indx, Elf64_Xword size){
+// The heap segment won't have a value set on file_size since it's not necessary
+void adjust_phdr_size(int outfilefd, int indx, Elf64_Xword size, int isheap, off_t heapsize){
     set_fileds_offset(outfilefd, 0, SEEK_SET);
     
     char buf[256];
-    read(outfilefd, &buf, 0x60);
-    
-    ssize_t nwrite = write(outfilefd, &size, 4);
 
+    // If it's the code segment, update only file and memory size
+    if (!isheap) {
+        
+        read(outfilefd, &buf, 0x60);
+        ssize_t nwrite = write(outfilefd, &size, 4);
+
+        if (nwrite < 4) {
+            perror("Error in writing new size in PHDR");
+            exit(1);
+        }
+
+        read(outfilefd, &buf, 4);
+        nwrite = write(outfilefd, &size, 4);
+        if (nwrite < 4) {
+            perror("Error in writing new size in PHDR");
+            exit(1);
+        }
+    }
+
+    // If it's heap segment, update also physical and virtal addrs
+    read(outfilefd, &buf, 0x88);
+    Elf64_Addr newaddr = 0x400000 + size;
+    ssize_t nwrite = write(outfilefd, &newaddr, 4);
     if (nwrite < 4) {
-        perror("Error in writing new size in PHDR");
+        perror("Error in writing new addr in heap PHDR");
         exit(1);
     }
+
     read(outfilefd, &buf, 4);
-
-    nwrite = write(outfilefd, &size, 4);
+    nwrite = write(outfilefd, &newaddr, 4);
     if (nwrite < 4) {
-        perror("Error in writing new size in PHDR");
+        perror("Error in writing new addr in heap PHDR");
         exit(1);
     }
 
-    // free(stringify);
 
+    // And update the memory size as well
+    read(outfilefd, &buf, 12);
+    nwrite = write(outfilefd, &heapsize, 4);
+    if (nwrite < 4) {
+        perror("Error in writing new size in heap PHDR");
+        exit(1);
+    }
 }
 
 // extern Elf64_Off segmentsize;
-// Used to get a filesize of order of 2
+// Used to get a filesize of order of 4
 off_t pad_zero(int outfilefd){
     ssize_t nwrite;
     uchar c = 0;
@@ -231,6 +290,7 @@ off_t pad_zero(int outfilefd){
     return newsize;
 }
 
+// Main routine
 void write_encoded_tree(int inputfilefd, int outfilefd) {
     int seekoffset;
 
@@ -251,8 +311,6 @@ void write_encoded_tree(int inputfilefd, int outfilefd) {
          perror("Failed to retrieve information about input file");
         exit(EXIT_FAILURE);
     }
-
-
 
     // print_freqs(stderr, freq);    /// DEBUG
 
@@ -349,11 +407,14 @@ void write_encoded_tree(int inputfilefd, int outfilefd) {
 
     set_fileds_offset(outfilefd, 0, SEEK_SET);
     
-    off_t segmentesize = update_entrypoint(outfilefd, entryPointOff);
-    printf("Size after entry was added %lx\n", segmentesize);
+    off_t segmentsize = update_entrypoint(outfilefd, entryPointOff);
+    printf("Size after entry was added %lx\n", segmentsize);
+    
+    // Adjust the code segment
+    adjust_phdr_size(outfilefd, 0, segmentsize, 0, 0);
 
-
-    ajust_phdr_size(outfilefd, 0, segmentesize);
+    // Adjust the heap segment
+    adjust_phdr_size(outfilefd, 0, segmentsize, 1, inputFileStatBuf.st_size);
 
     // Fress the memory allocated for the loader
     free(loader);
